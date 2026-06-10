@@ -1,16 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 — Jarrel Biscocho</title>
+    <title>404 — jarrel biscocho</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;1,9..40,300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;1,9..40,300&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./static/style.css">
 </head>
 <body>
-    <h1>404</h1>
-    <p>This page doesn't exist. <a href="/">Go home.</a></p>
+    <button class="theme-toggle" id="themeToggle">dark</button>
+    <div class="page">
+        <h1>404</h1>
+        <p>This page doesn't exist. <a href="/">Go home.</a></p>
+    </div>
+    <script>
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            const html = document.documentElement;
+            const isDark = html.dataset.theme !== 'dark';
+            html.dataset.theme = isDark ? 'dark' : 'light';
+            document.getElementById('themeToggle').textContent = isDark ? 'light' : 'dark';
+        });
+    </script>
 </body>
 </html>
