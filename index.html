@@ -13,32 +13,40 @@
     <link rel="stylesheet" href="./static/style.css">
 </head>
 <body>
-    <h1>jarrel biscocho</h1>
-    <h2>about</h2>
-    <p>I'm a backend engineer currently based in Los Angeles. Feel free to reach out on <a href="https://www.linkedin.com/in/jarrelb/">linkedin</a> or <a href="mailto:jb&#64;jarrel&#46;xyz?subject=Let%27s%20connect">email</a> if you'd like to connect.</p>
+    <div class="page">
+        <h1>jarrel biscocho</h1>
+        <div class="layout">
+        <div class="content">
+            <h2>about</h2>
+            <p>I'm a backend engineer currently based in Los Angeles. Feel free to reach out on <a href="https://www.linkedin.com/in/jarrelb/">linkedin</a> or <a href="mailto:jb&#64;jarrel&#46;xyz?subject=Let%27s%20connect">email</a> if you'd like to connect.</p>
 
-    <h2>work</h2>
-    <div class="rows">
-        <div class="row">
-            <span class="row-label"><a href="https://moshi.cam/">moshicam</a></span>
-            <span class="row-value">backend · <a href="https://paragraph.com/@moshicam/digitizing-your-aura">digitizing your aura</a> and <a href="https://basescan.org/address/0x75Bd14eB13bEF81db5AB07ff53a2dB3B7e6A42A7#code">app protocol</a> on Base</a></span>
+            <h2>work</h2>
+            <div class="rows">
+                <div class="row">
+                    <span class="row-label"><a href="https://moshi.cam/">moshicam</a></span>
+                    <span class="row-value"><a href="https://paragraph.com/@moshicam/digitizing-your-aura">digitizing your aura</a> and <a href="https://basescan.org/address/0x75Bd14eB13bEF81db5AB07ff53a2dB3B7e6A42A7#code">app protocol</a> on Base</span>
+                </div>
+                <div class="row">
+                    <span class="row-label"><a href="https://gallery.so/dcinvestor">gallery</a></span>
+                    <span class="row-value">product APIs and NFT processing pipelines</span>
+                </div>
+                <div class="row">
+                    <span class="row-label"><a href="https://flipsidecrypto.xyz">flipside crypto</a></span>
+                    <span class="row-value">blockchain indexing and orchestration</span>
+                </div>
+                <div class="row">
+                    <span class="row-label"><a href="https://blackwoodseven.com/">blackwood seven</a></span>
+                    <span class="row-value">feature engineering for marketing analytics</span>
+                </div>
+            </div>
         </div>
-        <div class="row">
-            <span class="row-label"><a href="https://gallery.so/dcinvestor">gallery</a></span>
-            <span class="row-value">backend · product and NFT processing pipelines</span>
+        <div class="canvas-wrap">
+            <canvas width="512" height="512" id="canvas" role="img" aria-label="Interactive game — move your mouse to guide the character and click to jump.">
+                <noscript>Enable JavaScript to play the interactive game.</noscript>
+            </canvas>
         </div>
-        <div class="row">
-            <span class="row-label"><a href="https://flipsidecrypto.xyz">flipside crypto</a></span>
-            <span class="row-value">platform · blockchain indexing and orchestration</span>
-        </div>
-        <div class="row">
-            <span class="row-label"><a href="https://blackwoodseven.com/">blackwood seven</a></span>
-            <span class="row-value">data eng · feature engineering for marketing analytics</span>
         </div>
     </div>
-    <canvas width="512" height="512" id="canvas" role="img" aria-label="Interactive game — move your mouse to guide the character and click to jump.">
-        <noscript>Enable JavaScript to play the interactive game.</noscript>
-    </canvas>
 </body>
 <script defer>
     const canvas = document.getElementById('canvas');
