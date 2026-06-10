@@ -3,28 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jarrel Biscocho</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            max-width: 600px;
-            margin: 40px auto;
-            padding: 0 20px;
-            line-height: 1.6;
-        }
-        h1 { margin-bottom: 5px; }
-        .links { margin-top: 20px; }
-        .links a { margin-right: 15px; }
-    </style>
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Jarrel Biscocho">
+    <title>jarrel biscocho</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;1,9..40,300&display=swap" rel="stylesheet">
+    <link rel="preload" href="./static/bunny_dark.png" as="image">
+    <link rel="stylesheet" href="./static/style.css">
 </head>
 <body>
-    <h1>Jarrel Biscocho</h1>
-    <p>I am a backend software engineer based in Los Angeles.</p>
-    <canvas width="512" height="512" id="canvas"></canvas>
+    <h1>jarrel biscocho</h1>
+    <p>I'm a backend engineer currently based in Los Angeles. Feel free to reach out on <a href="https://www.linkedin.com/in/jarrelb/">linkedin</a> if you'd like to connect.</p>
+    <canvas width="512" height="512" id="canvas" role="img" aria-label="Interactive game — move your mouse to guide the character and click to jump.">
+        <noscript>Enable JavaScript to play the interactive game.</noscript>
+    </canvas>
 </body>
-<script> 
-    var canvas = document.getElementById('canvas');
-    var c = canvas.getContext('2d');
+<script defer>
+    const canvas = document.getElementById('canvas');
+    const c = canvas.getContext('2d');
     c.imageSmoothingEnabled = false;
 
     const jumpHeight = -4;
@@ -38,14 +35,18 @@
     const platformFrequency = 0.02;
 
     const NUM_COLS = 4;
-    const NUM_ROWS = 2;
-    const DISPLAY_SCALE = 2;
+    const NUM_ROWS = 4;
+    const DISPLAY_SCALE = 3;
+
+    const JUMP_SEQUENCE = [1, 2, 3, 1];
+    const ANIM_FRAME_DURATION = 8;
+    const PLATFORM_DEATH_SEQUENCE = [1, 2, 3];
+    const PLATFORM_DEATH_FRAME_DURATION = 6;
+    const WALK_SEQUENCE = [[0,0], [0,1], [0,2], [0,3]];
+    const WALK_FRAME_DURATION = 8;
 
     const sprite = new Image();
-    let spriteWidth = 0;
-    let spriteHeight = 0;
-    let spriteFrameWidth = 0;
-    let spriteFrameHeight = 0;
+    let spriteWidth = 0, spriteHeight = 0, spriteFrameWidth = 0, spriteFrameHeight = 0;
 
     sprite.onload = () => {
         spriteFrameWidth = sprite.naturalWidth / NUM_COLS;
@@ -53,24 +54,22 @@
         spriteWidth = spriteFrameWidth * DISPLAY_SCALE;
         spriteHeight = spriteFrameHeight * DISPLAY_SCALE;
     };
+    sprite.src = './static/bunny_dark.png';
 
-    sprite.src = './static/bunny.png';
-
-    const JUMP_SEQUENCE = [1, 2, 3, 1];
-    const ANIM_FRAME_DURATION = 8;
-    const PLATFORM_DEATH_SEQUENCE = [1, 2, 3];
-    const PLATFORM_DEATH_FRAME_DURATION = 6;
-
-    // [row, col] pairs: idle frame from row 0, then full row 1
-    const WALK_SEQUENCE = [[0,0], [0,1], [0,2], [0,3]];
-    const WALK_FRAME_DURATION = 8;
+    function drawFrame(col, row, x, y) {
+        c.drawImage(sprite, col * spriteFrameWidth, row * spriteFrameHeight, spriteFrameWidth, spriteFrameHeight, x, y, spriteWidth, spriteHeight);
+    }
 
     let animFrame = 0;
     let animTimer = 0;
     let isAnimating = false;
-    let landingFrames = 0;
+    let landingFrames = 0
     let walkFrame = 0;
     let walkTimer = 0;
+    let dustFrame = -1;
+    let dustTimer = 0;
+    const DUST_FRAME_COUNT = 4;
+    const DUST_FRAME_DURATION = 4;
 
     function startJumpAnimation() {
         animFrame = 0;
@@ -80,17 +79,11 @@
 
     function updateAnimation() {
         if (!isAnimating) return;
-        animTimer++;
-        if (animTimer >= ANIM_FRAME_DURATION) {
+        if (++animTimer >= ANIM_FRAME_DURATION) {
             animTimer = 0;
-            animFrame++;
-            if (animFrame >= JUMP_SEQUENCE.length) {
-                isAnimating = false;
-            }
+            if (++animFrame >= JUMP_SEQUENCE.length) isAnimating = false;
         }
     }
-
-    const groundY = canvas.height - spriteHeight / 2;
 
     let circleX = canvas.width / 2;
     let circleY = canvas.height - spriteHeight / 2;
@@ -98,58 +91,44 @@
     let facingLeft = false;
     let boostRemainingFrames = 0;
     let velocityY = 0;
-
-    let cameraY = 0;
-    let smoothCameraY = 0;
-    let time = 0;
-
-
+    let cameraY = 0, smoothCameraY = 0, time = 0;
     let onGround = true;
 
     function makePlatform(x, y, phase) {
         return { x, originX: x, y, phase, dying: false, dyingFrame: 0, dyingTimer: 0 };
     }
 
+    let platforms = [], highestPlatformY = 0;
+
     function initPlatforms() {
-        platforms = [
-            makePlatform(200, canvas.height - 200, 0),
-            makePlatform(300, canvas.height - 300, Math.PI),
-        ];
-        highestPlatformY = platforms[1].y;
+        platforms = [makePlatform(canvas.width / 2, canvas.height - 200, 0)];
+        highestPlatformY = platforms[0].y;
     }
-
-    let platforms = [];
-    let highestPlatformY = 0;
-
     initPlatforms();
+
+    let clouds = [], highestCloudY = canvas.height;
+
+    function addCloud() {
+        const newY = highestCloudY - (120 + Math.random() * 200);
+        for (let attempt = 0; attempt < 10; attempt++) {
+            const newX = Math.random() * (canvas.width - spriteWidth);
+            const overlaps = clouds.some(cl => Math.abs(cl.x - newX) < spriteWidth && Math.abs(cl.y - newY) < spriteHeight);
+            if (!overlaps) {
+                clouds.push({ x: newX, y: newY, col: 2 + Math.floor(Math.random() * 2) });
+                break;
+            }
+        }
+        highestCloudY = newY;
+    }
 
     function addPlatform() {
         const newY = highestPlatformY - (80 + Math.random() * 80);
         const newX = Math.max(Math.min(Math.random() * canvas.width, canvas.width - 2 * spriteWidth), 2 * spriteWidth);
         platforms.push(makePlatform(newX, newY, Math.random() * Math.PI * 2));
+        highestPlatformY = newY;
     }
 
-    function addPlatforms() {
-        if (platforms.length > 0) {
-            highestPlatformY = Math.min(...platforms.map(p => p.y));
-        }
-
-        const lookahead = canvas.height;
-
-        if ( highestPlatformY > cameraY - lookahead) {
-            // 0 to 3
-            const numPlatforms = Math.floor(Math.random() * 3);
-            for (let i = 0; i < numPlatforms; i++) {
-                addPlatform();
-            }
-        }
-    }
-
-    function removePlatforms() {
-        platforms = platforms.filter(p => p.y < cameraY + canvas.height);
-    }
-
-    function collidesWithPlatform(platform, velocityY) {
+    function collidesWithPlatform(platform) {
         return (
             circleY + spriteHeight / 2 >= platform.y &&
             circleY - spriteHeight / 2 <= platform.y + spriteHeight + Math.abs(velocityY) &&
@@ -158,16 +137,31 @@
         );
     }
 
+    function getCanvasX(clientX) {
+        const rect = canvas.getBoundingClientRect();
+        return (clientX - rect.left) * (canvas.width / rect.width);
+    }
+
+    function clampCircleX(x) {
+        circleX = Math.max(spriteWidth / 2, Math.min(x, canvas.width - spriteWidth / 2));
+    }
+
+    function tryJump() {
+        if (circleY >= canvas.height - spriteHeight / 2) {
+            velocityY = jumpHeight;
+            boostRemainingFrames = boostDurationFrames;
+            onGround = false;
+            startJumpAnimation();
+        }
+    }
+
     function animate() {
         if (boostRemainingFrames > 0) {
             velocityY += upwardForce;
-            boostRemainingFrames--; 
-        } else if (velocityY < 0) {
-            velocityY += gravity;
+            boostRemainingFrames--;
         } else {
-            velocityY += downwardForce;
+            velocityY += velocityY < 0 ? gravity : downwardForce;
         }
-
         velocityY += gravity;
         circleY += velocityY;
 
@@ -185,54 +179,55 @@
         prevCircleX = circleX;
 
         if (onGround && moving) {
-            walkTimer++;
-            if (walkTimer >= WALK_FRAME_DURATION) {
+            if (++walkTimer >= WALK_FRAME_DURATION) {
                 walkTimer = 0;
                 walkFrame = (walkFrame + 1) % WALK_SEQUENCE.length;
             }
-        } else if (onGround && !moving) {
+        } else if (onGround) {
             walkFrame = 0;
             walkTimer = 0;
         }
 
         updateAnimation();
-        addPlatforms();
-        removePlatforms();
 
-        c.clearRect(0, 0, canvas.width, canvas.height);
+        if (platforms.length > 0) highestPlatformY = Math.min(...platforms.map(p => p.y));
+        while (highestPlatformY > cameraY - canvas.height) addPlatform();
+        platforms = platforms.filter(p => p.y < cameraY + canvas.height);
 
-        c.fillStyle = "white"; 
+        while (highestCloudY > cameraY - canvas.height * 2) addCloud();
+        clouds = clouds.filter(cl => cl.y < cameraY + canvas.height * 32);
+
+        c.fillStyle = "#0e0e0e";
         c.fillRect(0, 0, canvas.width, canvas.height);
 
         c.save();
         c.translate(0, -cameraY);
-
         time++;
 
-        // Draw platforms
+        for (const cloud of clouds) drawFrame(cloud.col, 2, cloud.x, cloud.y);
+
+        if (spriteWidth > 0) {
+            const numGrassTiles = Math.ceil(canvas.width / spriteWidth);
+            for (let i = 0; i < numGrassTiles; i++) drawFrame(i % 2, 2, i * spriteWidth, canvas.height - spriteHeight);
+        }
+
         for (let i = platforms.length - 1; i >= 0; i--) {
             const platform = platforms[i];
             platform.y += platformSpeed;
             platform.x = platform.originX + platformAmplitude * Math.sin(time * platformFrequency + platform.phase);
 
             if (platform.dying) {
-                platform.dyingTimer++;
-
-                if (platform.dyingTimer >= PLATFORM_DEATH_FRAME_DURATION) {
+                if (++platform.dyingTimer >= PLATFORM_DEATH_FRAME_DURATION) {
                     platform.dyingTimer = 0;
-                    platform.dyingFrame++;
-
-                    if (platform.dyingFrame >= PLATFORM_DEATH_SEQUENCE.length) {
+                    if (++platform.dyingFrame >= PLATFORM_DEATH_SEQUENCE.length) {
                         platforms.splice(i, 1);
                         continue;
                     }
                 }
-
-                const deathCol = PLATFORM_DEATH_SEQUENCE[platform.dyingFrame];
-                c.drawImage(sprite, deathCol * spriteFrameWidth, spriteFrameHeight, spriteFrameWidth, spriteFrameHeight, platform.x, platform.y, spriteWidth, spriteHeight);
+                drawFrame(PLATFORM_DEATH_SEQUENCE[platform.dyingFrame], 1, platform.x, platform.y);
             } else {
-                c.drawImage(sprite, 0, spriteFrameHeight, spriteFrameWidth, spriteFrameHeight, platform.x, platform.y, spriteWidth, spriteHeight);
-                if (velocityY > 0 && collidesWithPlatform(platform, velocityY)) {
+                drawFrame(0, 1, platform.x, platform.y);
+                if (velocityY > 0 && collidesWithPlatform(platform)) {
                     onGround = false;
                     velocityY = jumpHeight;
                     boostRemainingFrames = boostDurationFrames;
@@ -246,65 +241,52 @@
             circleY = canvas.height - spriteHeight / 2;
             velocityY = 0;
             boostRemainingFrames = 0;
-
             if (!onGround) {
                 landingFrames = 6;
+                dustFrame = 0;
+                dustTimer = 0;
+                if (!platforms.some(p => p.y >= cameraY && p.y <= cameraY + canvas.height)) initPlatforms();
             }
-
-            if (!onGround && !platforms.some(p => p.y >= cameraY && p.y <= cameraY + canvas.height)) {
-                initPlatforms();
-            }
-
             onGround = true;
         }
 
-        let spriteRow, spriteCol;
-
+        let spriteRow = 0, spriteCol;
         if (isAnimating) {
-            spriteRow = 0;
             spriteCol = JUMP_SEQUENCE[animFrame];
         } else if (landingFrames > 0) {
-            spriteRow = 0;
             spriteCol = 1;
             landingFrames--;
         } else if (onGround) {
             [spriteRow, spriteCol] = WALK_SEQUENCE[walkFrame];
-        } else if (velocityY < 0) {
-            spriteRow = 0;
-            spriteCol = 2;
         } else {
-            spriteRow = 0;
-            spriteCol = 3;
+            spriteCol = velocityY < 0 ? 2 : 3;
         }
 
         c.save();
         c.translate(circleX, circleY);
         if (facingLeft) c.scale(-1, 1);
-        c.drawImage(sprite, spriteCol * spriteFrameWidth, spriteRow * spriteFrameHeight, spriteFrameWidth, spriteFrameHeight, -spriteWidth / 2, -spriteHeight / 2, spriteWidth, spriteHeight);
+        drawFrame(spriteCol, spriteRow, -spriteWidth / 2, -spriteHeight / 2);
         c.restore();
 
-        c.restore();
+        if (dustFrame >= 0) {
+            drawFrame(dustFrame, 3, circleX - spriteWidth / 2, canvas.height - spriteHeight);
+            if (++dustTimer >= DUST_FRAME_DURATION) {
+                dustTimer = 0;
+                if (++dustFrame >= DUST_FRAME_COUNT) {
+                    dustFrame = -1;
+                }
+            }
+        }
 
+        c.restore();
         requestAnimationFrame(animate);
     }
 
-    canvas.addEventListener("mousemove", (event) => {
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = (event.clientX - rect.left) * (canvas.width / rect.width);
-        circleX = Math.max(spriteWidth / 2, Math.min(mouseX, canvas.width - spriteWidth / 2));
-    });
-
-    canvas.addEventListener("click", (event) => {
-        if (circleY >= canvas.height - spriteHeight / 2) {
-            velocityY = jumpHeight;
-            boostRemainingFrames = boostDurationFrames;
-            onGround = false;
-            startJumpAnimation();
-        }
-    });
+    canvas.addEventListener('mousemove', e => clampCircleX(getCanvasX(e.clientX)));
+    canvas.addEventListener('click', tryJump);
+    canvas.addEventListener('touchmove', e => { e.preventDefault(); clampCircleX(getCanvasX(e.touches[0].clientX)); }, { passive: false });
+    canvas.addEventListener('touchstart', tryJump);
 
     animate();
-
-</script> 
+</script>
 </html>
-
