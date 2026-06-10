@@ -13,12 +13,13 @@
     <link rel="stylesheet" href="./static/style.css">
 </head>
 <body>
+    <button class="theme-toggle" id="themeToggle">dark</button>
     <div class="page">
         <h1>jarrel biscocho</h1>
         <div class="layout">
         <div class="content">
             <h2>about</h2>
-            <p>I'm a backend engineer currently based in Los Angeles. Feel free to reach out on <a href="https://www.linkedin.com/in/jarrelb/">linkedin</a> or <a href="mailto:jb&#64;jarrel&#46;xyz?subject=Let%27s%20connect">email</a> if you'd like to connect.</p>
+            <p>I'm a backend engineer currently based in Los Angeles, CA. Feel free to reach out on <a href="https://www.linkedin.com/in/jarrelb/">linkedin</a> or <a href="mailto:jb&#64;jarrel&#46;xyz?subject=Let%27s%20connect">email</a> if you'd like to connect.</p>
 
             <h2>work</h2>
             <div class="rows">
@@ -74,16 +75,33 @@
     const WALK_SEQUENCE = [[0,0], [0,1], [0,2], [0,3]];
     const WALK_FRAME_DURATION = 8;
 
-    const sprite = new Image();
     let spriteWidth = 0, spriteHeight = 0, spriteFrameWidth = 0, spriteFrameHeight = 0;
 
-    sprite.onload = () => {
-        spriteFrameWidth = sprite.naturalWidth / NUM_COLS;
-        spriteFrameHeight = sprite.naturalHeight / NUM_ROWS;
+    const spriteDark = new Image();
+    const spriteLight = new Image();
+    let sprite = spriteDark;
+
+    spriteDark.onload = () => {
+        spriteFrameWidth = spriteDark.naturalWidth / NUM_COLS;
+        spriteFrameHeight = spriteDark.naturalHeight / NUM_ROWS;
         spriteWidth = spriteFrameWidth * DISPLAY_SCALE;
         spriteHeight = spriteFrameHeight * DISPLAY_SCALE;
     };
-    sprite.src = './static/bunny_dark.png';
+    spriteDark.src = './static/bunny_dark.png';
+    spriteLight.src = './static/bunny_light.png';
+
+    let isDark = false;
+    let canvasBg = '#d4d0c8';
+    sprite = spriteLight;
+    document.documentElement.dataset.theme = 'light';
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+        isDark = !isDark;
+        document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+        document.getElementById('themeToggle').textContent = isDark ? 'light' : 'dark';
+        sprite = isDark ? spriteDark : spriteLight;
+        canvasBg = isDark ? '#0e0e0e' : '#d4d0c8';
+    });
 
     function drawFrame(col, row, x, y) {
         c.drawImage(sprite, col * spriteFrameWidth, row * spriteFrameHeight, spriteFrameWidth, spriteFrameHeight, x, y, spriteWidth, spriteHeight);
@@ -226,7 +244,7 @@
         while (highestCloudY > cameraY - canvas.height * 2) addCloud();
         clouds = clouds.filter(cl => cl.y < cameraY + canvas.height * 32);
 
-        c.fillStyle = "#0e0e0e";
+        c.fillStyle = canvasBg;
         c.fillRect(0, 0, canvas.width, canvas.height);
 
         c.save();
