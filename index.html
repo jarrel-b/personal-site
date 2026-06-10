@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarrel Biscocho</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 0 20px;
+            line-height: 1.6;
+        }
+        h1 { margin-bottom: 5px; }
+        .links { margin-top: 20px; }
+        .links a { margin-right: 15px; }
+    </style>
+</head>
+<body>
+    <h1>Jarrel Biscocho</h1>
+    <p>I am a backend software engineer based in Los Angeles.</p>
+    <canvas width="512" height="512" id="canvas"></canvas>
+</body>
+<script> 
+    var canvas = document.getElementById('canvas');
+    var c = canvas.getContext('2d');
+    c.imageSmoothingEnabled = false;
+
+    const jumpHeight = -4;
+    const gravity = 0.08;
+    const upwardForce = -0.2;
+    const downwardForce = 0.15;
+    const boostDurationFrames = 12;
+
+    const platformSpeed = 0.5;
+
+    const NUM_COLS = 4;
+    const NUM_ROWS = 2;
+    const DISPLAY_SCALE = 2;
+
+    const sprite = new Image();
+    let spriteWidth = 0;
+    let spriteHeight = 0;
+    let spriteFrameWidth = 0;
+    let spriteFrameHeight = 0;
+
+    sprite.onload = () => {
+        spriteFrameWidth = sprite.naturalWidth / NUM_COLS;
+        spriteFrameHeight = sprite.naturalHeight / NUM_ROWS;
+        spriteWidth = spriteFrameWidth * DISPLAY_SCALE;
+        spriteHeight = spriteFrameHeight * DISPLAY_SCALE;
+    };
+
+    sprite.src = './static/bunny.png';
+
+    const JUMP_SEQUENCE = [1, 2, 3, 1];
+    const ANIM_FRAME_DURATION = 8;
+    // [row, col] pairs: idle frame from row 0, then full row 1
+    const WALK_SEQUENCE = [[0,0], [0,1], [0,2], [0,3]];
+    const WALK_FRAME_DURATION = 8;
+
+    let animFrame = 0;
+    let animTimer = 0;
+    let isAnimating = false;
+    let landingFrames = 0;
+    let walkFrame = 0;
+    let walkTimer = 0;
+
+    function startJumpAnimation() {
+        animFrame = 0;
+        animTimer = 0;
+        isAnimating = true;
+    }
+
+    function updateAnimation() {
+        if (!isAnimating) return;
+        animTimer++;
+        if (animTimer >= ANIM_FRAME_DURATION) {
+            animTimer = 0;
+            animFrame++;
+            if (animFrame >= JUMP_SEQUENCE.length) {
+                isAnimating = false;
+            }
+        }
+    }
+
+    const groundY = canvas.height - spriteHeight / 2;
+
+    let circleX = canvas.width / 2;
+    let circleY = canvas.height - spriteHeight / 2;
+    let prevCircleX = circleX;
+    let facingLeft = false;
+    let boostRemainingFrames = 0;
+    let velocityY = 0;
+
+    let cameraY = 0;
+    let smoothCameraY = 0;
+
+
+    let onGround = true;
+    let platforms = [
+        { x: 200, y: canvas.height - 200 },
+        { x: 300, y: canvas.height - 300 },
+    ]
+    let highestPlatformY = platforms[1].y;
+
+    function addPlatform() {
+        const newY = highestPlatformY - (80 + Math.random() * 80);
+        const newX = Math.max(Math.min(Math.random() * canvas.width, canvas.width - 2 * spriteWidth), 2 * spriteWidth);
+        platforms.push({ x: newX, y: newY });
+    }
+
+    function addPlatforms() {
+        if (platforms.length > 0) {
+            highestPlatformY = Math.min(...platforms.map(p => p.y));
+        }
+
+        const lookahead = canvas.height;
+
+        if ( highestPlatformY > cameraY - lookahead) {
+            // 0 to 3
+            const numPlatforms = Math.floor(Math.random() * 3);
+            for (let i = 0; i < numPlatforms; i++) {
+                addPlatform();
+            }
+        }
+    }
+
+    function removePlatforms() {
+        platforms = platforms.filter(p => p.y < cameraY + canvas.height * 2);
+    }
+
+    function collidesWithPlatform(platform, velocityY) {
+        return (
+            circleY + spriteHeight / 2 >= platform.y &&
+            circleY - spriteHeight / 2 <= platform.y + spriteHeight + Math.abs(velocityY) &&
+            circleX + spriteWidth / 2 >= platform.x &&
+            circleX - spriteWidth / 2 <= platform.x + spriteWidth
+        );
+    }
+
+    function animate() {
+        if (boostRemainingFrames > 0) {
+            velocityY += upwardForce;
+            boostRemainingFrames--; 
+        } else if (velocityY < 0) {
+            velocityY += gravity;
+        } else {
+            velocityY += downwardForce;
+        }
+
+        velocityY += gravity;
+        circleY += velocityY;
+
+        const desiredTarget = onGround ? 0 : circleY - canvas.height * 0.5;
+        smoothCameraY += (desiredTarget - smoothCameraY) * 0.05;
+        cameraY += (smoothCameraY - cameraY) * 0.1;
+
+        const moving = circleX !== prevCircleX;
+        if (circleX < prevCircleX) facingLeft = true;
+        else if (circleX > prevCircleX) facingLeft = false;
+        prevCircleX = circleX;
+
+        if (onGround && moving) {
+            walkTimer++;
+            if (walkTimer >= WALK_FRAME_DURATION) {
+                walkTimer = 0;
+                walkFrame = (walkFrame + 1) % WALK_SEQUENCE.length;
+            }
+        } else if (onGround && !moving) {
+            walkFrame = 0;
+            walkTimer = 0;
+        }
+
+        updateAnimation();
+        addPlatforms();
+        removePlatforms();
+
+        c.clearRect(0, 0, canvas.width, canvas.height);
+
+        c.fillStyle = "white"; 
+        c.fillRect(0, 0, canvas.width, canvas.height);
+
+        c.save();
+        c.translate(0, -cameraY);
+
+        // Draw platforms
+        for (const [index, platform] of platforms.entries()) {
+            platform.y += platformSpeed;
+
+            c.drawImage(sprite, 0, spriteFrameHeight, spriteFrameWidth, spriteFrameHeight, platform.x, platform.y, spriteWidth, spriteHeight);
+
+            if (velocityY > 0 && collidesWithPlatform(platform, velocityY)) {
+                onGround = false;
+                velocityY = jumpHeight;
+                boostRemainingFrames = boostDurationFrames;
+                startJumpAnimation();
+                platforms.splice(index, 1);
+            }
+        }
+
+        if (circleY >= canvas.height - spriteHeight / 2) {
+            circleY = canvas.height - spriteHeight / 2;
+            velocityY = 0;
+            boostRemainingFrames = 0;
+            if (!onGround) landingFrames = 6;
+            onGround = true;
+        }
+
+        let spriteRow, spriteCol;
+        if (isAnimating) {
+            spriteRow = 0;
+            spriteCol = JUMP_SEQUENCE[animFrame];
+        } else if (landingFrames > 0) {
+            spriteRow = 0;
+            spriteCol = 1;
+            landingFrames--;
+        } else if (onGround) {
+            [spriteRow, spriteCol] = WALK_SEQUENCE[walkFrame];
+        } else if (velocityY < 0) {
+            spriteRow = 0;
+            spriteCol = 2;
+        } else {
+            spriteRow = 0;
+            spriteCol = 3;
+        }
+        c.save();
+        c.translate(circleX, circleY);
+        if (facingLeft) c.scale(-1, 1);
+        c.drawImage(sprite, spriteCol * spriteFrameWidth, spriteRow * spriteFrameHeight, spriteFrameWidth, spriteFrameHeight, -spriteWidth / 2, -spriteHeight / 2, spriteWidth, spriteHeight);
+        c.restore();
+
+        c.restore();
+
+        requestAnimationFrame(animate);
+    }
+
+    canvas.addEventListener("mousemove", (event) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = (event.clientX - rect.left) * (canvas.width / rect.width);
+        circleX = Math.max(spriteWidth / 2, Math.min(mouseX, canvas.width - spriteWidth / 2));
+    });
+
+    canvas.addEventListener("click", (event) => {
+        if (circleY >= canvas.height - spriteHeight / 2) {
+            velocityY = jumpHeight;
+            boostRemainingFrames = boostDurationFrames;
+            onGround = false;
+            startJumpAnimation();
+        }
+    });
+
+    animate();
+
+</script> 
+</html>
+
