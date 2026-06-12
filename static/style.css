@@ -122,6 +122,14 @@ canvas {
     height: auto;
     aspect-ratio: 1;
     image-rendering: pixelated;
+    cursor: pointer;
+}
+
+.canvas-hint {
+    margin: 8px 0 0;
+    font-size: 0.75rem;
+    color: var(--fg-muted);
+    text-align: center;
 }
 
 .theme-toggle {
