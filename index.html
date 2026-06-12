@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="./static/style.css">
 </head>
 <body>
-    <button class="theme-toggle" id="themeToggle">dark</button>
+    <button class="theme-toggle" id="themeToggle">light</button>
     <div class="page">
         <h1>jarrel biscocho</h1>
         <div class="layout">
@@ -38,6 +38,18 @@
                 <div class="row">
                     <span class="row-label"><a href="https://blackwoodseven.com/">blackwood seven</a></span>
                     <span class="row-value">feature engineering for marketing analytics</span>
+                </div>
+            </div>
+
+            <h2>explorations</h2>
+            <div class="rows">
+                <div class="row">
+                    <span class="row-label"><a href="https://github.com/jarrel-b/evm-from-scratch">mini-evm</a></span>
+                    <span class="row-value">learning more about the execution of ethereum</span>
+                </div>
+                <div class="row">
+                    <span class="row-label"><a href="https://github.com/jarrel-b/go-1brc">go 1brc</a></span>
+                    <span class="row-value">trying out the billion-row challenge in go</span>
                 </div>
             </div>
         </div>
@@ -90,10 +102,10 @@
     spriteDark.src = './static/bunny_dark.png';
     spriteLight.src = './static/bunny_light.png';
 
-    let isDark = false;
-    let canvasBg = '#d4d0c8';
-    sprite = spriteLight;
-    document.documentElement.dataset.theme = 'light';
+    let isDark = true;
+    let canvasBg = '#0e0e0e';
+    sprite = spriteDark;
+    document.documentElement.dataset.theme = 'dark';
 
     document.getElementById('themeToggle').addEventListener('click', () => {
         isDark = !isDark;
